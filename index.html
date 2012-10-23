@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>localChat.js</title>
+		<style>
+		.clearfix:after {
+			clear: both;
+			content: "\0020";
+			display: block;
+			height: 0;
+			overflow: hidden;
+			visibility: hidden;
+		}
+		body {
+			font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+		}
+		form {
+			float: left;
+			width: 25%;
+		}
+		.action {
+			margin-bottom: 20px;
+		}
+		#debug {
+			background: #000;
+			font-family: monospace;
+			height: 250px;
+			overflow: auto;
+			padding: 10px;
+		}
+		#debug .timestamp {
+			color: #666 !important;
+		}
+		#debug .error {
+			color: #f00;
+		}
+		#debug .flash {
+			color: #ff0;
+		}
+		#debug .info {
+			color: #ccc;
+		}
+		#debug .message {
+			color: #fff;
+		}
+		#debug .success {
+			color: #0f0;
+		}
+		</style>
+	</head>
+	<body>
+		<h1>localChat.js</h1>
+		<p>Communication between browser tabs (or windows) using localStorage</p>
+		<h2>Help</h2>
+		<p>Open two or more tabs and begin playing! Just remember, rooms starts with numeral (#)</p>
+		<div class="action clearfix">
+			<form name="join">
+				<h3>Join room</h3>
+				<input type="text" name="room" placeholder="Room name" value="#test">
+				<button type="submit">Join</button>
+			</form>
+			<form name="part">
+				<h3>Part room</h3>
+				<select name="room"></select>
+				<button type="submit">Part</button>
+			</form>
+			<form name="post">
+				<h3>Send message</h3>
+				<input type="text" name="channel" placeholder="Channel name (room or nick)">
+				<input type="text" name="message" placeholder="Message">
+				<button type="submit">Send</button>
+			</form>
+			<form name="nick">
+				<h3>Change nick</h3>
+				<input type="text" name="nick" placeholder="Nick">
+				<button type="submit">Change</button>
+			</form>
+		</div>
+		<div id="debug">
+		</div>
+		<script src="localChat.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+		<script type="text/javascript">
+		// join form
+		$('form[name=join]').on('submit', function() {
+			var form = $(this),
+				room = form.find('[name=room]'),
+				roomName = room.val();
+			var join = localChat.join(roomName, function(nick, message) {
+				debug.log('&lt;' + nick + '/' + roomName + '&gt; ' + message, 'message');
+			});
+			if (join) {
+				debug.log('Joined room ' + roomName, 'success');
+				room.val('');
+				$('<option value="' + roomName + '">' + roomName + '</option>').appendTo($('form[name=part] select'));
+				$('form[name=post] [name=room]').val(roomName);
+			} else {
+				debug.log('Could not join room because you are already in or room name is invalid', 'error');
+			}
+			return false;
+		});
+
+		// part form
+		$('form[name=part]').on('submit', function() {
+			var form = $(this),
+				room = form.find('[name=room]'),
+				roomName = room.val();
+			var part = localChat.part(roomName);
+			if (part) {
+				debug.log('Parted room ' + roomName, 'success');
+				$('form[name=part] select option[value=' + roomName + ']').remove();
+			} else {
+				debug.log('Could not part room because you are not in there');
+			}
+			return false;
+		});
+
+		// post form
+		$('form[name=post]').on('submit', function() {
+			var form = $(this),
+				channel = form.find('[name=channel]'),
+				channelName = channel.val()
+				message = form.find('[name=message]'),
+				messageData = message.val();
+			var post = localChat.postMessage(channelName, messageData);
+			if (post) {
+				debug.log('Message sent', 'success');
+				message.val('');
+			} else {
+				debug.log('Could not send message because channel is invalid or nick is offline', 'error');
+			}
+			return false;
+		});
+
+		// nick form
+		$('form[name=nick]').on('submit', function() {
+			var form = $(this),
+				nick = form.find('[name=nick]'),
+				nickName = nick.val();
+			var change = localChat.nick(nickName);
+			if (change) {
+				debug.log('You are now known as ' + nickName, 'success');
+				nick.val('');
+			} else {
+				debug.log('Could not change nick because it is already in use or invalid', 'error');
+			}
+			return false;
+		});
+
+		// private message
+		localChat.onPrivateMessage = function(from, message) {
+			debug.log('&lt;' + from + '&gt; ' + message, 'flash');
+		};
+
+		// console
+		window.debug = {
+			element: $('#debug'),
+			log: function(message, className) {
+				$('<div class="' + (className || '') + '">' + this.timestamp() + ' ' + message + '</div>').appendTo(this.element);
+				this.element.scrollTop(this.element[0].scrollHeight);
+			},
+			timestamp: function() {
+				var now = new Date,
+					hours = now.getHours(),
+					minutes = now.getMinutes();
+				if (minutes < 9) {
+					minutes = '0' + minutes;
+				}
+				return '<span class="ts">[' + hours + ':' + minutes + ']</span>';
+			}
+		};
+
+		debug.log('Console loaded. You are ' + localChat.nick(), 'info');
+		</script>
+	</body>
+</html>

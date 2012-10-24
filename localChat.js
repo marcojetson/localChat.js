@@ -1,3 +1,10 @@
+/*!
+* localChat.js 1.0
+* Communication between browser tabs (and windows) using localStorage
+*
+* Released under the MIT license
+* http://www.opensource.org/licenses/mit-license.php
+*/
 ;(function(window) {
 
 	/**
@@ -101,7 +108,7 @@
 			for (var i = 0; i < updates.length; ++i) {
 				callback(updates[i].nick, updates[i].message, updates[i].time);
 			}
-		}, 1000);
+		}, intervalTime);
 		return true;
 	};
 
@@ -142,6 +149,13 @@
 	 * @var string
 	 */
 	var keyPrefix = 'localChat_';
+
+	/**
+	 * Interval time in milliseconds, not recommended below 1000
+	 *
+	 * @var int
+	 */
+	var intervalTime = 1000;
 
 	/**
 	 * Joined channels intervals
@@ -229,9 +243,17 @@
 				// not a valid channel name or user is not online
 				return false;
 			}
+			// get channel list and add message
 			var messages = JSON.parse(localStorage.getItem(keyPrefix + channel)) || [],
 				now = +new Date;
 			messages.unshift({ nick: nick, message: message, time: now });
+			// remove old messages
+			for (var i = 0; i < messages.length; ++i) {
+				if (now - messages[i].time > intervalTime * 1.5) {
+					messages.splice(i);
+					break;
+				}
+			}
 			localStorage.setItem(keyPrefix + channel, JSON.stringify(messages));
 			localStorage.setItem(keyPrefix + 'update_' + channel, now);
 			return true;
@@ -259,7 +281,7 @@
 				// start updates in the new nick
 				intervals[nick + ':ping'] = setInterval(function() {
 					localStorage.setItem(keyPrefix + nick + ':ping', +new Date);
-				}, 1000);
+				}, intervalTime);
 				registerChannel(newNick, localChat.onPrivateMessage);
 			}
 			return nick;

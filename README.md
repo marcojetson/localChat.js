@@ -36,5 +36,5 @@ A channel where many people can listen, must start with numeral (#) and have bet
 ### Nick
 Unique window identifier must have between 1 and 32 characters (-_a-z0-9)
 
-## Warning
-Not yet production ready
+##License
+Released under the MIT license http://www.opensource.org/licenses/mit-license.php
